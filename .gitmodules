@@ -1,0 +1,6 @@
+[submodule "aes_hdl_41_noia"]
+	path = aes_hdl_41_noia
+	url = git@github.com:Lucien98/aes_dom_41cycles.git
+[submodule "aes_hdl_51_noia"]
+	path = aes_hdl_51_noia
+	url = git@github.com:Lucien98/aes_dom_51cycles.git
