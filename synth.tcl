@@ -1,5 +1,6 @@
 # 
 # Copyright (C) 2024 Vedad Hadžić
+# Modified by Feng Zhou, 2025
 # 
 # 
 # This program is free software: you can redistribute it and/or modify
@@ -58,7 +59,12 @@ foreach file $IN_FILES {
 
 yosys log "SHARES = $SHARES"
 if {![string equal "" $SHARES]} {
-    yosys chparam -set d [expr $SHARES] $TOP_MODULE
+    # yosys chparam -set d [expr $SHARES] $TOP_MODULE
+    if {[string equal $TOP_MODULE "aes_sbox"]} {
+        yosys chparam -set SHARES [expr $SHARES] $TOP_MODULE
+    } else {
+        yosys chparam -set d [expr $SHARES] $TOP_MODULE
+    }
 }
 # yosys log "LATENCY = $LATENCY"
 # if {![string equal "" $LATENCY]} {
