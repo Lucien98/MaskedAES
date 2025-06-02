@@ -21,6 +21,7 @@ set IN_FILES       [regexp -all -inline {\S+} $::env(IN_FILES)]
 set TOP_MODULE     $::env(TOP_MODULE)
 set OUT_BASE       $::env(OUT_BASE)
 set LIBERTY        $::env(LIBERTY)
+set FV_DEF        $::env(FV_DEF)
 
 if {[info exists env(SHARES)]} {
     set SHARES $::env(SHARES)
@@ -28,22 +29,21 @@ if {[info exists env(SHARES)]} {
     set SHARES ""
 }
 
-if {[info exists env(LATENCY)]} {
-    set LATENCY $::env(LATENCY)
-} else {
-    set LATENCY ""
+set MACRO_DEF [list]
+
+if {[info exists env(FV_DEF)] && $::env(FV_DEF) == 1} {
+    lappend MACRO_DEF -D FV
+}
+if {[info exists env(IA_DEF)] && $::env(IA_DEF) == 1} {
+    lappend MACRO_DEF -D IA
 }
 
-if {[info exists env(CHOSEN_STAGE_TYPE)]} {
-    set CHOSEN_STAGE_TYPE $::env(CHOSEN_STAGE_TYPE)
-} else {
-    set CHOSEN_STAGE_TYPE ""
-}
-if {[info exists env(CHOSEN_INVERTER_TYPE)]} {
-    set CHOSEN_INVERTER_TYPE $::env(CHOSEN_INVERTER_TYPE)
-} else {
-    set CHOSEN_INVERTER_TYPE ""
-}
+# if {[info exists env(FV_DEF)] && $::env(FV_DEF) == 1} {
+#     set MACRO_DEF "-D FV"
+# } else {
+#     set MACRO_DEF ""
+# }
+
 
 set order [expr {$SHARES - 1}]
 
@@ -54,7 +54,7 @@ set JSON_POST_MAP  $OUT_BASE/o$order/post.json
 set STATS_FILE     $OUT_BASE/o$order/stats.txt
 
 foreach file $IN_FILES {
-    yosys read_verilog -defer $file
+    yosys read_verilog -defer {*}$MACRO_DEF $file
 }
 
 yosys log "SHARES = $SHARES"

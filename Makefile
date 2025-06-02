@@ -21,10 +21,6 @@ YOSYS = yosys
 VERILATOR = verilator
 CXX = g++
 
-SV_DIR = rtl
-V_DIR = gen
-TB_DIR = tb
-CPP_DIR = cpp
 OBJ_DIR = obj
 SYN_DIR = syn
 
@@ -52,6 +48,8 @@ resdir:
 	  done; \
 	done'
 
+FV_DEF ?= 0
+IA_DEF ?= 0
 
 aes_hdl_%/sbox/aes_sbox:
 	IN_FILES="$(shell find aes_hdl_$* -type f -name "*.v" ! -name "tb_*.v" ! -name "final*.v")" \
@@ -59,6 +57,8 @@ aes_hdl_%/sbox/aes_sbox:
 	TOP_MODULE="aes_sbox" \
 	OUT_BASE="syn/aes_hdl_$*/sbox/" \
 	LIBERTY="stdcells.lib" \
+	FV_DEF=$(FV_DEF) \
+	IA_DEF=$(IA_DEF) \
 	yosys synth.tcl -t -l "syn/aes_hdl_$*/sbox/o$(ORDER)/log.txt"
 
 aes_hdl_%/full_aes/wrapper_aes128:
@@ -82,24 +82,24 @@ aes_hdl_%/full_aes/MSKaes_128bits_round_based:
 syn_sbox:
 	@for i in $$(seq 2 $(N)); do \
 		echo "=== Building SHARES=$$i ==="; \
-		make aes_hdl_41_noia/sbox/aes_sbox SHARES=$$i || exit 1; \
-		make aes_hdl_51_noia/sbox/aes_sbox SHARES=$$i || exit 1; \
+		make aes_hdl_41_noia/sbox/aes_sbox SHARES=$$i FV_DEF=$$FV_DEF IA_DEF=$$IA_DEF || exit 1; \
+		make aes_hdl_51_noia/sbox/aes_sbox SHARES=$$i FV_DEF=$$FV_DEF IA_DEF=$$IA_DEF || exit 1; \
 	done
 
 syn_aes_core:
 	@for i in $$(seq 2 $(N)); do \
 		echo "=== Building SHARES=$$i ==="; \
 		make aes_hdl_51_noia/full_aes/MSKaes_128bits_round_based SHARES=$$i || exit 1; \
+		make aes_hdl_41_noia/full_aes/MSKaes_128bits_round_based SHARES=$$i || exit 1; \
 	done
-# 		make aes_hdl_41_noia/full_aes/MSKaes_128bits_round_based SHARES=$$i || exit 1; \
 
 syn_aes_wrapper:
 	@for i in $$(seq 2 $(N)); do \
 		echo "=== Building SHARES=$$i ==="; \
 		make aes_hdl_51_noia/full_aes/wrapper_aes128 SHARES=$$i || exit 1; \
+		make aes_hdl_41_noia/full_aes/wrapper_aes128 SHARES=$$i || exit 1; \
 	done
 
-# 		make aes_hdl_41_noia/full_aes/wrapper_aes128 SHARES=$$i || exit 1; \
 
 
 # verilate_%_noia: 
@@ -130,20 +130,60 @@ syn_aes_wrapper:
 # 	./obj_dir/Vwrapper_aes128
 
 
+# verilate_%_noia:
+# 	@ID=$*; \
+# 	MODULE=aes_hdl_$${ID}_noia; \
+# 	if [ "$$ID" = "41" ]; then LATENCY=3; else LATENCY=4; fi; \
+# 	VERILATOR_IN_FILES=$$(find $$MODULE -type f -name "*.v" ! -name "tb_*.v" ! -name "final*.v"); \
+# 	verilator -Wno-fatal -cc $$VERILATOR_IN_FILES \
+# 		--exe aes_hdl_51_noia/tb.cpp \
+# 		--top-module wrapper_aes128 \
+# 		-CFLAGS "-O2 -Wall" \
+# 		--trace \
+# 		-I$$MODULE \
+# 		-I$$MODULE/sbox \
+# 		-DDEFAULTSHARES=3 -DLATENCY=$$LATENCY
+# 	$(MAKE) -C obj_dir -f Vwrapper_aes128.mk
+# 	./obj_dir/Vwrapper_aes128
+
+# 		--exe $$MODULE/tb.cpp \
+
 verilate_%_noia:
 	@ID=$*; \
 	MODULE=aes_hdl_$${ID}_noia; \
 	if [ "$$ID" = "41" ]; then LATENCY=3; else LATENCY=4; fi; \
+	SHARES_VAL=${SHARES}; \
 	VERILATOR_IN_FILES=$$(find $$MODULE -type f -name "*.v" ! -name "tb_*.v" ! -name "final*.v"); \
 	verilator -Wno-fatal -cc $$VERILATOR_IN_FILES \
 		--exe aes_hdl_51_noia/tb.cpp \
 		--top-module wrapper_aes128 \
-		-CFLAGS "-O2 -Wall" \
+		-CFLAGS "-O2 -Wall -DSHARES=$$SHARES_VAL" \
 		--trace \
 		-I$$MODULE \
 		-I$$MODULE/sbox \
-		-DDEFAULTSHARES=3 -DLATENCY=$$LATENCY
+		-DDEFAULTSHARES=$$SHARES_VAL -DLATENCY=$$LATENCY
 	$(MAKE) -C obj_dir -f Vwrapper_aes128.mk
 	./obj_dir/Vwrapper_aes128
 
-# 		--exe $$MODULE/tb.cpp \
+mv:
+	make -C maskVerif
+	cp ./maskVerif/maskverif .
+
+NOTION ?= NI
+
+benchs:
+	@for i in $$(seq 1 $(MAX_ORDER)); do \
+		echo "=== Generating benchs: ORDER=$$i ==="; \
+		python make_mv.py --circ syn/aes_hdl_41_noia/sbox/o$$i/pre.json --spec annonation/aes_sbox3.json --notion $$NOTION > syn/aes_hdl_41_noia/sbox/o$$i/aes_sbox.mv || exit 1; \
+		python make_mv.py --circ syn/aes_hdl_51_noia/sbox/o$$i/pre.json --spec annonation/aes_sbox4.json --notion $$NOTION > syn/aes_hdl_51_noia/sbox/o$$i/aes_sbox.mv || exit 1; \
+	done
+
+fv:
+	@for i in $$(seq 1 $(MAX_ORDER)); do \
+		echo "=== Verifying benchs: ORDER=$$i ==="; \
+		./maskverif < syn/aes_hdl_41_noia/sbox/o$$i/aes_sbox.mv || exit 1; \
+		./maskverif < syn/aes_hdl_51_noia/sbox/o$$i/aes_sbox.mv || exit 1; \
+		echo "";\
+	done
+
+

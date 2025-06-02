@@ -1,0 +1,12 @@
+{
+    "_XxDI" : {"type": "S", "len": 8},
+    "_Zmul1xDI" : {"type": "M", "len": "?"}, 
+    "_Zmul2xDI" : {"type": "M", "len": "?"}, 
+    "_Zmul3xDI" : {"type": "M", "len": "?"}, 
+    "_Zinv1xDI" : {"type": "M", "len": "?"}, 
+    "_Zinv2xDI" : {"type": "M", "len": "?"}, 
+    "_Zinv3xDI" : {"type": "M", "len": "?"}, 
+    "_BxDI" : {"type": "M", "len": "?"}, 
+    "_QxDO": {"type": "O", "len": 8}, 
+    "ClkxCI": {"type": 1, "len": 1}
+}
