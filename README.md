@@ -19,8 +19,8 @@ sudo apt install -y verilator make
 
 Then run the testbenchs.
 ```bash
-make verilator_41_noia SHARES=2 # check for the 41-cycle AES
-make verilator_51_noia SHARES=2 # check for the 51-cycle AES
+make verilate_41_noia SHARES=2 # check for the 41-cycle AES
+make verilate_51_noia SHARES=2 # check for the 51-cycle AES
 ```
 We use the test vector as follows:
  
@@ -28,7 +28,7 @@ We use the test vector as follows:
   - umsk_key: 0x3c4fcf098815f7aba6d2ae2816157e2b
   - umsk_ciphertext: 0x320b6a19978511dcfb09dc021d842539
 
-As a result, the last line of the above command will be 
+If the process is done correctly, the last line of the above command should be 
 ```
 Recombined ciphertext: 0x320b6a19978511dcfb09dc021d842539
 ```
@@ -87,6 +87,8 @@ python get_stats.py syn/aes_hdl_41_noia/full_aes/wrapper_aes128
 
 ## Data
 Area data for three-staged S-Box
+
+Column `#random` lists the required number of random bits. Column `area.wo` lists the real area without RNG. Column `area.w`/`area.w.pred` lists the predicted area with RNG. Column `area.w.real` lists the real area with RNG. 
 
 | #random | area.wo (GE) | area.w (GE) |
 |--------|---------|---------|
